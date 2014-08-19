@@ -5,6 +5,7 @@
         <filter levels="critical">
             <file path="logs/critical.log" formatid="critical"/>
         </filter>
+		<console/>
     </outputs>
     <formats>
         <format id="common" format="%Date %Time [%LEV] %Msg%n" />

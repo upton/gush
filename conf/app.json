@@ -1,0 +1,6 @@
+{
+	"Port_tcp":"8888",
+	"Port_notify":"8080",
+	"Read_timeout":6,
+	"Write_timeout":3
+}

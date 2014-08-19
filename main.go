@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	gush.NewGush()
+	gush.Run()
 }

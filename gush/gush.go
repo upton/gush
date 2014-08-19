@@ -3,34 +3,34 @@ package gush
 import (
 	"io"
 	"net"
-	"net/http"
 	"strings"
 	"time"
 )
 
 const (
-	AUTH          = "_A"
-	HB            = "_H"
-	END           = "_E"
-	READ_TIMEOUT  = 6
-	WRITE_TIMEOUT = 3
+	AUTH       = "_A:"
+	HB         = "_H:"
+	END        = "__END"
+	MSG_PREFIX = "_M:"
+	NEW_LINE   = "\n"
 )
 
-var userMap = make(map[string]*userChannel)
+var userMap = make(map[string]*UserChannel)
 
-type userChannel struct {
+type UserChannel struct {
 	uid string
 	msg chan string
 }
 
-func NewGush() {
-	ln, err := net.Listen("tcp", ":8888")
+func Run() {
+	ln, err := net.Listen("tcp", ":"+config.Port_tcp)
 	if err != nil {
 		Logger.Error(err)
 	}
 
 	go regNotifyApi()
 
+	Logger.Info("start success")
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -40,14 +40,14 @@ func NewGush() {
 
 		channel := make(chan string)
 
-		uc := &userChannel{"", channel}
+		uc := &UserChannel{"", channel}
 
 		go readConn(conn, uc)
 		go wirteConn(conn, uc)
 	}
 }
 
-func readConn(c net.Conn, uc *userChannel) {
+func readConn(c net.Conn, uc *UserChannel) {
 	defer func() {
 		uc.msg <- END
 	}()
@@ -55,7 +55,7 @@ func readConn(c net.Conn, uc *userChannel) {
 	buf := make([]byte, 1024)
 
 	for {
-		c.SetReadDeadline(time.Now().Add(READ_TIMEOUT * time.Second))
+		c.SetReadDeadline(time.Now().Add(time.Duration(config.Read_timeout) * time.Second))
 		n, err := c.Read(buf)
 
 		if err != nil {
@@ -73,7 +73,7 @@ func readConn(c net.Conn, uc *userChannel) {
 	}
 }
 
-func wirteConn(c net.Conn, uc *userChannel) {
+func wirteConn(c net.Conn, uc *UserChannel) {
 	defer func() {
 		c.Close()
 		close(uc.msg)
@@ -87,8 +87,8 @@ func wirteConn(c net.Conn, uc *userChannel) {
 			break
 		}
 
-		c.SetWriteDeadline(time.Now().Add(WRITE_TIMEOUT * time.Second))
-		_, err := c.Write([]byte(msg))
+		c.SetWriteDeadline(time.Now().Add(time.Duration(config.Write_timeout) * time.Second))
+		_, err := c.Write([]byte(msg + NEW_LINE))
 
 		if err != nil {
 			Logger.Error("Write error: %s", err)
@@ -97,28 +97,7 @@ func wirteConn(c net.Conn, uc *userChannel) {
 	}
 }
 
-func notify(uid string, msg string) string {
-	u, ok := userMap[uid]
-	if ok {
-		u.msg <- msg
-		return "OK"
-	} else {
-		return "FAIL"
-	}
-}
-
-func regNotifyApi() {
-	http.HandleFunc("/notify", func(rw http.ResponseWriter, request *http.Request) {
-		uid := request.FormValue("uid")
-		msg := request.FormValue("msg")
-		mm := notify(uid, msg)
-		rw.Write([]byte(mm))
-	})
-
-	http.ListenAndServe(":8080", nil)
-}
-
-func routeMsg(request string, uc *userChannel) {
+func routeMsg(request string, uc *UserChannel) {
 	if strings.HasPrefix(request, AUTH) {
 		auth(strings.Replace(request, AUTH, "", 1), uc)
 	} else if request == HB {
@@ -130,14 +109,14 @@ func routeMsg(request string, uc *userChannel) {
 	}
 }
 
-func auth(request string, uc *userChannel) {
+func auth(request string, uc *UserChannel) {
 	// do auth check
 	uc.uid = request
 	userMap[request] = uc
 
-	uc.msg <- "OK"
+	uc.msg <- AUTH + "OK"
 }
 
-func heartbeat(uc *userChannel) {
-	uc.msg <- "OK"
+func heartbeat(uc *UserChannel) {
+	uc.msg <- HB + "OK"
 }
