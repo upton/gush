@@ -1,12 +1,9 @@
 package gush
 
 import (
-	"fmt"
-	"github.com/cihub/seelog"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -19,25 +16,11 @@ const (
 	WRITE_TIMEOUT = 3
 )
 
-var Logger seelog.LoggerInterface
-
 var userMap = make(map[string]*userChannel)
 
 type userChannel struct {
 	uid string
 	msg chan string
-}
-
-func init() {
-	initLogger()
-}
-
-func initLogger() {
-	log, err := seelog.LoggerFromConfigAsFile("conf/seelog.xml")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	Logger = log
 }
 
 func NewGush() {

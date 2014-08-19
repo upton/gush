@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gush"
+	"gush/gush"
 )
 
 func main() {
-
+	gush.NewGush()
 }
