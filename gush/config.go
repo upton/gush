@@ -10,6 +10,7 @@ var Logger seelog.LoggerInterface
 
 func init() {
 	initLogger()
+	initGushConf()
 }
 
 func initLogger() {
@@ -18,4 +19,8 @@ func initLogger() {
 		fmt.Fprintln(os.Stderr, err)
 	}
 	Logger = log
+}
+
+func initGushConf() {
+
 }
