@@ -2,13 +2,13 @@
 <seelog minlevel="info">
     <outputs formatid="common">
         <rollingfile type="size" filename="logs/roll.log" maxsize="100000" maxrolls="5"/>
-        <filter levels="critical">
-            <file path="logs/critical.log" formatid="critical"/>
+        <filter levels="error">
+            <file path="logs/error.log" formatid="error"/>
         </filter>
 		<console/>
     </outputs>
     <formats>
         <format id="common" format="%Date %Time [%LEV] %Msg%n" />
-        <format id="critical" format="%Date %Time [%LEV] %File %FullPath %Func %Msg%n" />
+        <format id="error" format="%Date %Time [%LEV] %File %FullPath %Func %Msg%n" />
     </formats>
 </seelog>

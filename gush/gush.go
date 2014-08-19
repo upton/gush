@@ -1,7 +1,6 @@
 package gush
 
 import (
-	"io"
 	"net"
 	"strings"
 	"time"
@@ -59,10 +58,7 @@ func readConn(c net.Conn, uc *UserChannel) {
 		n, err := c.Read(buf)
 
 		if err != nil {
-			if err != io.EOF {
-				Logger.Error("Read error: %s", err)
-			}
-			Logger.Error("conn error: %s", err)
+			Logger.Error("conn error: ", err)
 			break
 		}
 
@@ -83,7 +79,7 @@ func wirteConn(c net.Conn, uc *UserChannel) {
 	for {
 		msg := <-uc.msg
 		if msg == END {
-			Logger.Error("conn closed.")
+			Logger.Warn("conn closed.")
 			break
 		}
 
@@ -91,7 +87,7 @@ func wirteConn(c net.Conn, uc *UserChannel) {
 		_, err := c.Write([]byte(msg + NEW_LINE))
 
 		if err != nil {
-			Logger.Error("Write error: %s", err)
+			Logger.Error("Write error: ", err)
 			break
 		}
 	}
