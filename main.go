@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gush/gush"
+	"github.com/upton/gush"
 )
 
 func main() {
