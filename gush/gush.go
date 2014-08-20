@@ -48,7 +48,9 @@ func Run() {
 
 func readConn(c net.Conn, uc *UserChannel) {
 	defer func() {
-		uc.msg <- END
+		if uc.msg != nil {
+			uc.msg <- END
+		}
 	}()
 
 	buf := make([]byte, 1024)
@@ -58,7 +60,7 @@ func readConn(c net.Conn, uc *UserChannel) {
 		n, err := c.Read(buf)
 
 		if err != nil {
-			Logger.Error("conn error: ", err)
+			Logger.Error("read error: ", err)
 			break
 		}
 
@@ -73,6 +75,7 @@ func wirteConn(c net.Conn, uc *UserChannel) {
 	defer func() {
 		c.Close()
 		close(uc.msg)
+		uc.msg = nil
 		delete(userMap, uc.uid)
 	}()
 
@@ -106,7 +109,12 @@ func routeMsg(request string, uc *UserChannel) {
 }
 
 func auth(request string, uc *UserChannel) {
-	// do auth check
+	//TODO: do auth check
+	//if fail {
+	//	uc.msg <- AUTH + "FAIL"
+	//	uc.msg <- END
+	//}
+
 	uc.uid = request
 	userMap[request] = uc
 
