@@ -77,12 +77,12 @@ func wirteConn(c net.Conn, uc *UserChannel) {
 		close(uc.msg)
 		uc.msg = nil
 		delete(userMap, uc.uid)
+		Logger.Warn("conn closed..")
 	}()
 
 	for {
 		msg := <-uc.msg
 		if msg == END {
-			Logger.Warn("conn closed.")
 			break
 		}
 
