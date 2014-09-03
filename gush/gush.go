@@ -1,6 +1,7 @@
 package gush
 
 import (
+	"bufio"
 	"net"
 	"strings"
 	"time"
@@ -37,8 +38,7 @@ func Run() {
 			continue
 		}
 
-		channel := make(chan string)
-
+		channel := make(chan string, 5)
 		uc := &UserChannel{"", channel}
 
 		go readConn(conn, uc)
@@ -48,24 +48,23 @@ func Run() {
 
 func readConn(c net.Conn, uc *UserChannel) {
 	defer func() {
-		if uc.msg != nil {
-			uc.msg <- END
-		}
+		c.Close()
+		Logger.Warn("conn closed on readConn.")
 	}()
 
-	buf := make([]byte, 1024)
+	reader := bufio.NewReader(c)
 
 	for {
 		c.SetReadDeadline(time.Now().Add(time.Duration(config.Read_timeout) * time.Second))
-		n, err := c.Read(buf)
+		bb, _, err := reader.ReadLine()
 
 		if err != nil {
 			Logger.Error("read error: ", err)
 			break
 		}
 
-		if n > 0 {
-			m := string(buf[:n])
+		if len(bb) > 0 {
+			m := string(bb)
 			routeMsg(m, uc)
 		}
 	}
@@ -74,23 +73,22 @@ func readConn(c net.Conn, uc *UserChannel) {
 func wirteConn(c net.Conn, uc *UserChannel) {
 	defer func() {
 		c.Close()
-		close(uc.msg)
-		uc.msg = nil
 		delete(userMap, uc.uid)
-		Logger.Warn("conn closed..")
+		Logger.Warn("conn closed on writeConn.")
 	}()
 
 	for {
-		msg := <-uc.msg
-		if msg == END {
-			break
-		}
+		select {
+		case msg := <-uc.msg:
+			c.SetWriteDeadline(time.Now().Add(time.Duration(config.Write_timeout) * time.Second))
+			_, err := c.Write([]byte(msg + NEW_LINE))
 
-		c.SetWriteDeadline(time.Now().Add(time.Duration(config.Write_timeout) * time.Second))
-		_, err := c.Write([]byte(msg + NEW_LINE))
+			if err != nil {
+				Logger.Error("Write error: ", err)
+				break
+			}
 
-		if err != nil {
-			Logger.Error("Write error: ", err)
+		case <-time.After(time.Duration(config.Read_timeout) * time.Second):
 			break
 		}
 	}
@@ -118,9 +116,9 @@ func auth(request string, uc *UserChannel) {
 	uc.uid = request
 	userMap[request] = uc
 
-	uc.msg <- AUTH + "OK"
+	uc.msg <- AUTH + "OK[uid=" + request + "]"
 }
 
 func heartbeat(uc *UserChannel) {
-	uc.msg <- HB + "OK"
+	uc.msg <- HB + "OK[uid=" + uc.uid + "]"
 }
